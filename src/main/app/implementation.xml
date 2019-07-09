@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -9,7 +9,9 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd
-http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
     <flow name="getFlightsFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/flights" allowedMethods="GET" doc:name="HTTP"/>
         <set-variable variableName="airline" value="#[message.inboundProperties.'http.query.params'.airline]" doc:name="Set airline variable"/>
@@ -47,6 +49,8 @@ payload orderBy $.price]]></dw:set-payload>
                 <http:uri-param paramName="destination" value="#[flowVars.code]"/>
             </http:request-builder>
         </http:request>
+        <json:validate-schema schemaLocation="unitedSchema.json" doc:name="Validate JSON Schema"/>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="c939751d-bc7a-4917-8f4b-2de750686189">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
@@ -64,10 +68,10 @@ payload.flights map ((flight , indexOfFlight) -> {
 	class : "com.mulesoft.training.Flight"
 })]]></dw:set-payload>
         </dw:transform-message>
-        <logger level="INFO" doc:name="Logger" message="#[message.payloadAs(java.lang.String)]"/>
     </flow>
     <flow name="getDeltaFlightsFlow">
         <dw:transform-message doc:name="Transform Message">
+            <dw:input-variable doc:sample="sample_data\map_string_string.dwl" variableName="code"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/xml
 %namespace ns0 http://soap.training.mulesoft.com/
@@ -78,7 +82,14 @@ payload.flights map ((flight , indexOfFlight) -> {
 	}
 }]]></dw:set-payload>
         </dw:transform-message>
+        <message-filter onUnaccepted="invalidRequestFlow" doc:name="Schema Validation">
+            <mulexml:schema-validation-filter schemaLocations="deltaTypes.xsd" returnResult="true"/>
+        </message-filter>
         <ws:consumer config-ref="Delta_Web_Service_Consumer" operation="findFlight" doc:name="Delta SOAP Request"/>
+        <message-filter onUnaccepted="invalidRequestFlow" doc:name="Schema Validation">
+            <mulexml:schema-validation-filter schemaLocations="deltaTypes.xsd" returnResult="true"/>
+        </message-filter>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="1ade9105-dd25-4510-a83a-49c478fcc6d6">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
@@ -97,7 +108,6 @@ payload.ns0#findFlightResponse.*return map ((return , indexOfReturn) -> {
 	class : "com.mulesoft.training.Flight"
 })]]></dw:set-payload>
         </dw:transform-message>
-        <logger level="INFO" doc:name="Logger" message="#[message.payloadAs(java.lang.String)]"/>
     </flow>
     <flow name="getAmericanFlightsFlow">
         <http:request config-ref="American_HTTP_Request_Configuration" path="/flights" method="GET" doc:name="American REST Request">
@@ -105,6 +115,8 @@ payload.ns0#findFlightResponse.*return map ((return , indexOfReturn) -> {
                 <http:query-param paramName="destination" value="#[flowVars.code]"/>
             </http:request-builder>
         </http:request>
+        <json:validate-schema schemaLocation="americanSchema.json" doc:name="Validate JSON Schema"/>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="d49e6a6b-0ca2-4a8f-96de-755f10b9b7d8">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
@@ -122,7 +134,6 @@ payload map ((payload01 , indexOfPayload01) -> {
 	class : "com.mulesoft.training.Flight"
 })]]></dw:set-payload>
         </dw:transform-message>
-        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="getAllAirlineFlightsFlow">
         <scatter-gather doc:name="Scatter-Gather">
@@ -154,27 +165,6 @@ payload map ((payload01 , indexOfPayload01) -> {
 ---
 flatten payload]]></dw:set-payload>
         </dw:transform-message>
-        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
-    </flow>
-    <flow name="noFlightsFoundFlow">
-        <dw:transform-message doc:name="Transform Message">
-            <dw:set-payload><![CDATA[%dw 1.0
-%output application/java
----
-{
-	airlineName: flowVars.responseAirline,
-	availableSeats: -1,
-	departureDate: "",
-	destination: "",
-	flightCode: flowVars.code,
-	origination: "",
-	planeType: "",
-	price: -1
-} as :object {
-	class : "com.mulesoft.training.Flight"
-}]]></dw:set-payload>
-        </dw:transform-message>
-        <set-property propertyName="http.status" value="201" doc:name="201"/>
         <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>

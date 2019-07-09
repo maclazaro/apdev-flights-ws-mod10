@@ -27,23 +27,8 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <http:listener config-ref="HTTP_Listener_Configuration" path="/console/*" doc:name="HTTP"/>
         <apikit:console config-ref="mua-flights-api-config" doc:name="APIkit Console"/>
     </flow>
-    <flow name="invalidUriPathFlow">
-        <set-property propertyName="http.status" value="404" doc:name="404"/>
-        <set-payload value="{ &quot;message&quot;: &quot;Invalid URI path&quot; }" mimeType="application/json" doc:name="Set Payload"/>
-        <logger message="#[message.payloadAs(java.lang.String)]" level="WARN" category="com.mulesoft.training.flights.api" doc:name="Logger"/>
-    </flow>
-    <flow name="invalidMethodFlow">
-        <set-property propertyName="http.status" value="404" doc:name="404"/>
-        <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" mimeType="application/json" doc:name="Set Payload"/>
-        <logger message="#[message.payloadAs(java.lang.String)]" level="WARN" category="com.mulesoft.training.flights.api" doc:name="Logger"/>
-    </flow>
-    <flow name="invalidRequestFlow">
-        <set-property propertyName="http.status" value="404" doc:name="404"/>
-        <set-payload value="{ &quot;message&quot;: &quot;Invalid request&quot; }" doc:name="Set Payload" mimeType="application/json"/>
-        <logger message="#[message.payloadAs(java.lang.String)]" level="WARN" category="com.mulesoft.training.flights.api" doc:name="Logger"/>
-    </flow>
     <flow name="get:/flights:mua-flights-api-config">
-        <flow-ref name="getFlightsFlow" doc:name="Flow Reference"/>
+        <flow-ref name="getFlightsFlow" doc:name="getFlightsFlow"/>
         <!--set-payload value="[&#xA;{&#xA;&quot;airline&quot; : &quot;United&quot;,&#xA;&quot;flightCode&quot; : &quot;ER38sd&quot;,&#xA;&quot;fromAirportCode&quot; : &quot;LAX&quot;,&#xA;&quot;toAirportCode&quot; : &quot;SFO&quot;,&#xA;&quot;departureDate&quot; : &quot;May 21, 2016&quot;,&#xA;&quot;emptySeats&quot; : 0,&#xA;&quot;totalSeats&quot; : 200,&#xA;&quot;price&quot; : 199,&#xA;&quot;planeType&quot; : &quot;Boeing 737&quot;&#xA;},&#xA;{&#xA;&quot;airline&quot; : &quot;Delta&quot;,&#xA;&quot;flightCode&quot; : &quot;ER0945&quot;,&#xA;&quot;fromAirportCode&quot; : &quot;PDX&quot;,&#xA;&quot;toAirportCode&quot; : &quot;CLE&quot;,&#xA;&quot;departureDate&quot; : &quot;June 1, 2016&quot;,&#xA;&quot;emptySeats&quot; : 24,&#xA;&quot;totalSeats&quot; : 350,&#xA;&quot;price&quot; : 450,&#xA;&quot;planeType&quot; : &quot;Boeing 747&quot;&#xA;}&#xA;]" doc:name="Set Payload"/-->
     </flow>
     <apikit:mapping-exception-strategy name="mua-flights-api-apiKitGlobalExceptionMapping">

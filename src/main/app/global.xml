@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:context="http://www.springframework.org/schema/context" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:context="http://www.springframework.org/schema/context" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
@@ -46,5 +50,41 @@ http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/cu
         </catch-exception-strategy>
 
         </choice-exception-strategy>
+    <flow name="invalidUriPathFlow">
+        <set-property propertyName="http.status" value="404" doc:name="404"/>
+        <set-payload value="{ &quot;message&quot;: &quot;Invalid URI path&quot; }" mimeType="application/json" doc:name="Set Payload"/>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="WARN" category="com.mulesoft.training.flights.api" doc:name="Logger"/>
+    </flow>
+    <flow name="invalidMethodFlow">
+        <set-property propertyName="http.status" value="404" doc:name="404"/>
+        <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" mimeType="application/json" doc:name="Set Payload"/>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="WARN" category="com.mulesoft.training.flights.api" doc:name="Logger"/>
+    </flow>
+    <flow name="invalidRequestFlow">
+        <set-property propertyName="http.status" value="404" doc:name="404"/>
+        <set-payload value="{ &quot;message&quot;: &quot;Invalid request&quot; }" doc:name="Set Payload" mimeType="application/json"/>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="WARN" category="com.mulesoft.training.flights.api" doc:name="Logger"/>
+    </flow>
+    <flow name="noFlightsFoundFlow">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	airlineName: flowVars.responseAirline,
+	availableSeats: -1,
+	departureDate: "",
+	destination: "",
+	flightCode: flowVars.code,
+	origination: "",
+	planeType: "",
+	price: -1
+} as :object {
+	class : "com.mulesoft.training.Flight"
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <set-property propertyName="http.status" value="201" doc:name="201"/>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+    </flow>
         
 </mule>
