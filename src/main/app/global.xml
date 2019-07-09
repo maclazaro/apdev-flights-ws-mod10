@@ -19,8 +19,16 @@ http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/cu
         <http:config useTransportForUris="false"/>
     </configuration>
     <payload-type-filter expectedType="java.util.ArrayList" name="Filter_Not_ArrayList" doc:name="Payload"/>
-
-        <choice-exception-strategy name="Choice_Exception_Strategy">
+        <not-filter doc:name="Not" name="invalidUriPath">
+            <message-property-filter pattern="http.request.path=/api/favicon.ico" caseSensitive="true" scope="inbound"/>
+        </not-filter>
+    <message-property-filter pattern="http.method=GET" caseSensitive="true" scope="inbound" doc:name="http.methodGETFlow" name="invalidMethod"/>
+    <message-property-filter pattern="http.request.path=/api/flights" caseSensitive="true" scope="inbound" doc:name="http.request.pathGETFlow" name="invalidRestResource"/>
+    <and-filter name="invalidMethodAndInvalidRestResource" doc:name="And">
+        <filter ref="invalidMethod"/>
+        <filter ref="invalidRestResource"/>
+    </and-filter>
+    <choice-exception-strategy name="Choice_Exception_Strategy">
             <catch-exception-strategy when="#[exception.causedBy(java.lang.IllegalArgumentException)]" doc:name="No destination code set">
             	<set-payload value="#[exception.message]" doc:name="Set Payload"/>
             	<set-property propertyName="http.status" value="400" doc:name="Property"/>

@@ -35,7 +35,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 ---
 payload orderBy $.price]]></dw:set-payload>
         </dw:transform-message>
-        <logger level="INFO" doc:name="Logger"/>
+        <logger level="INFO" doc:name="Logger" message="#[message.payloadAs(java.lang.String)]"/>
 
     </flow>
     <sub-flow name="setCodeSubflow">
@@ -64,7 +64,7 @@ payload.flights map ((flight , indexOfFlight) -> {
 	class : "com.mulesoft.training.Flight"
 })]]></dw:set-payload>
         </dw:transform-message>
-        <logger level="INFO" doc:name="Logger"/>
+        <logger level="INFO" doc:name="Logger" message="#[message.payloadAs(java.lang.String)]"/>
     </flow>
     <flow name="getDeltaFlightsFlow">
         <dw:transform-message doc:name="Transform Message">
@@ -97,7 +97,7 @@ payload.ns0#findFlightResponse.*return map ((return , indexOfReturn) -> {
 	class : "com.mulesoft.training.Flight"
 })]]></dw:set-payload>
         </dw:transform-message>
-        <logger level="INFO" doc:name="Logger"/>
+        <logger level="INFO" doc:name="Logger" message="#[message.payloadAs(java.lang.String)]"/>
     </flow>
     <flow name="getAmericanFlightsFlow">
         <http:request config-ref="American_HTTP_Request_Configuration" path="/flights" method="GET" doc:name="American REST Request">
@@ -122,20 +122,30 @@ payload map ((payload01 , indexOfPayload01) -> {
 	class : "com.mulesoft.training.Flight"
 })]]></dw:set-payload>
         </dw:transform-message>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="getAllAirlineFlightsFlow">
         <scatter-gather doc:name="Scatter-Gather">
             <processor-chain>
                 <flow-ref name="getDeltaFlightsFlow" doc:name="getDeltaFlightsFlow"/>
-                <filter ref="Filter_Not_ArrayList" doc:name="Filter Reference"/>
+                <set-variable variableName="responseAirline" value="Delta" doc:name="Set responseAirline variable"/>
+                <message-filter onUnaccepted="noFlightsFoundFlow" doc:name="noFlightsFound">
+                    <filter ref="Filter_Not_ArrayList"/>
+                </message-filter>
             </processor-chain>
             <processor-chain>
                 <flow-ref name="getUnitedFlightsFlow" doc:name="getUnitedFlightsFlow"/>
-                <filter ref="Filter_Not_ArrayList" doc:name="Filter Reference"/>
+                <set-variable variableName="responseAirline" value="United" doc:name="Set responseAirline variable"/>
+                <message-filter onUnaccepted="noFlightsFoundFlow" doc:name="noFlightsFound">
+                    <filter ref="Filter_Not_ArrayList"/>
+                </message-filter>
             </processor-chain>
             <processor-chain>
                 <flow-ref name="getAmericanFlightsFlow" doc:name="getAmericanFlightsFlow"/>
-                <filter ref="Filter_Not_ArrayList" doc:name="Filter Reference"/>
+                <set-variable variableName="responseAirline" value="American" doc:name="Set responseAirline variable"/>
+                <message-filter onUnaccepted="noFlightsFoundFlow" doc:name="noFlightsFound">
+                    <filter ref="Filter_Not_ArrayList"/>
+                </message-filter>
             </processor-chain>
         </scatter-gather>
         <dw:transform-message doc:name="Transform Message">
@@ -144,6 +154,27 @@ payload map ((payload01 , indexOfPayload01) -> {
 ---
 flatten payload]]></dw:set-payload>
         </dw:transform-message>
-        <logger level="INFO" doc:name="Logger"/>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="noFlightsFoundFlow">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	airlineName: flowVars.responseAirline,
+	availableSeats: -1,
+	departureDate: "",
+	destination: "",
+	flightCode: flowVars.code,
+	origination: "",
+	planeType: "",
+	price: -1
+} as :object {
+	class : "com.mulesoft.training.Flight"
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <set-property propertyName="http.status" value="201" doc:name="201"/>
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
     </flow>
 </mule>
