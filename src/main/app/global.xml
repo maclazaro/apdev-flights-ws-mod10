@@ -34,18 +34,18 @@ http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/cu
     </and-filter>
     <choice-exception-strategy name="Choice_Exception_Strategy">
             <catch-exception-strategy when="#[exception.causedBy(java.lang.IllegalArgumentException)]" doc:name="No destination code set">
+            <set-property propertyName="http.status" value="400" doc:name="400"/>
             	<set-payload value="#[exception.message]" doc:name="Set Payload"/>
-            	<set-property propertyName="http.status" value="400" doc:name="Property"/>
             	<logger level="INFO" doc:name="Logger"/>
        		</catch-exception-strategy>
             <catch-exception-strategy when="#[exception.causeMatches('com.mulesoft.weave.*')]" doc:name="No flights &#8211; DW exception">
+            <set-property propertyName="http.status" value="400" doc:name="400"/>
                 <set-payload value="NO FLIGHTS to #[flowVars.code +  '\n' + exception]" doc:name="Set Payload"/>
-                <set-property propertyName="http.status" value="400" doc:name="Property"/>
                 <logger level="INFO" doc:name="Logger"/>
             </catch-exception-strategy>
         <catch-exception-strategy doc:name="Data unavailable &#8211; all other exceptions">
+            <set-property propertyName="http.status" value="500" doc:name="400"/>
             <set-payload value="DATA IS UNAVAILABLE. TRY LATER. #['\n' + exception] " doc:name="Set Payload"/>
-            <set-property propertyName="http.status" value="500" doc:name="Property"/>
             <logger level="INFO" doc:name="Logger"/>
         </catch-exception-strategy>
 
@@ -66,6 +66,7 @@ http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/cu
         <logger message="#[message.payloadAs(java.lang.String)]" level="WARN" category="com.mulesoft.training.flights.api" doc:name="Logger"/>
     </flow>
     <flow name="noFlightsFoundFlow">
+        <set-property propertyName="http.status" value="201" doc:name="201"/>
         <dw:transform-message doc:name="Transform Message">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
@@ -83,7 +84,6 @@ http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/cu
 	class : "com.mulesoft.training.Flight"
 }]]></dw:set-payload>
         </dw:transform-message>
-        <set-property propertyName="http.status" value="201" doc:name="201"/>
         <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
     </flow>
         

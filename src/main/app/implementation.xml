@@ -167,4 +167,21 @@ flatten payload]]></dw:set-payload>
         </dw:transform-message>
         <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
     </flow>
+    <flow name="postFlightFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/flights" allowedMethods="POST" doc:name="POST /flights" metadata:id="69c47e2f-c56d-4fe0-9799-b6213f02be90"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:input-payload doc:sample="flight-example.json"/>
+            <dw:set-payload resource="classpath:json_flight_playground.dwl"/>
+            <dw:set-variable variableName="xml"><![CDATA[%dw 1.0
+%output application/xml
+---
+data: {
+	hub: "MUA",
+	flight @(airline: payload.airline): {
+		code: payload.toAirportCode
+	}
+}]]></dw:set-variable>
+        </dw:transform-message>
+        <logger level="INFO" doc:name="Logger"/>
+    </flow>
 </mule>
